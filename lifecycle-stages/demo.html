@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lifecycle Stage Definitions — Claude Skill Output</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,sans-serif;background:#0F1117;color:#E2E8F0;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:40px 20px}
+
+  .card{width:740px;max-width:100%;background:#1A1D2E;border-radius:16px;overflow:hidden;border:1px solid rgba(251,176,59,.15);box-shadow:0 0 80px rgba(251,176,59,.06),0 20px 60px rgba(0,0,0,.4)}
+
+  .header{background:linear-gradient(135deg,#14213D,#1A2A4A);padding:28px 32px 24px;border-bottom:2px solid #FBB03B;position:relative}
+  .header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:2px;background:linear-gradient(90deg,#FBB03B,#F59E0B,#FBB03B)}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(251,176,59,.12);border:1px solid rgba(251,176,59,.3);color:#FBB03B;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px;margin-bottom:12px}
+  .badge svg{width:14px;height:14px}
+  .header h1{font-size:22px;font-weight:800;color:#FFF;margin-bottom:6px}
+  .header p{font-size:13px;color:#94A3B8}
+
+  .body{padding:24px 32px 28px}
+
+  /* ── Funnel ── */
+  .funnel{display:flex;gap:2px;margin-bottom:24px;height:44px;border-radius:8px;overflow:hidden}
+  .funnel-stage{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:all .2s;cursor:pointer}
+  .funnel-stage:hover{filter:brightness(1.2)}
+  .funnel-stage .f-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.9)}
+  .funnel-stage .f-count{font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace;color:#fff}
+  .funnel-stage.healthy{background:rgba(34,197,94,.25)}
+  .funnel-stage.bottleneck{background:rgba(245,158,11,.3)}
+  .funnel-stage.leaking{background:rgba(239,68,68,.25)}
+  .funnel-stage.small{background:rgba(100,116,139,.2)}
+
+  /* ── Conversion arrows ── */
+  .conversions{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding:0 8px}
+  .conv-arrow{text-align:center;flex:1}
+  .conv-rate{font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .conv-rate.good{color:#22C55E}
+  .conv-rate.mid{color:#F59E0B}
+  .conv-rate.bad{color:#EF4444}
+  .conv-label{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .conv-time{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+  .tab{padding:10px 12px;text-align:center;font-size:11px;font-weight:600;color:#64748B;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:transparent;border-top:none;border-left:none;border-right:none}
+  .tab:hover{color:#94A3B8;background:rgba(255,255,255,.02)}
+  .tab.active{border-bottom-color:#FBB03B;color:#FBB03B}
+  .tab .tab-count{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;background:rgba(255,255,255,.06);padding:1px 5px;border-radius:10px;margin-left:3px}
+  .tab.active .tab-count{background:rgba(251,176,59,.15);color:#FBB03B}
+
+  .tab-content{display:none;padding:20px 0 0}
+  .tab-content.active{display:block}
+
+  /* ── Definition Card ── */
+  .def-card{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:20px;margin-bottom:16px}
+  .def-stage-name{font-size:14px;font-weight:800;color:#FBB03B;text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(251,176,59,.15)}
+  .def-row{margin-bottom:12px}
+  .def-label{font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  .def-text{font-size:13px;color:#E2E8F0;line-height:1.5}
+  .def-criteria{list-style:none;padding:0}
+  .def-criteria li{font-size:12px;color:#CBD5E1;padding:3px 0;padding-left:16px;position:relative}
+  .def-criteria li::before{content:'→';position:absolute;left:0;color:#FBB03B;font-weight:700}
+
+  .metrics-row{display:flex;gap:10px;margin-bottom:16px}
+  .metric{flex:1;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);border-radius:8px;padding:10px 12px;text-align:center}
+  .metric .m-val{font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1}
+  .metric .m-label{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+  .metric.green .m-val{color:#22C55E}
+  .metric.amber .m-val{color:#F59E0B}
+  .metric.red .m-val{color:#EF4444}
+  .metric.blue .m-val{color:#38BDF8}
+
+  /* ── Tasks ── */
+  .mismatch-header{font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.04)}
+  .task{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;margin-bottom:3px;border-radius:6px;transition:background .12s}
+  .task:hover{background:rgba(255,255,255,.02)}
+  .checkbox{width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,.15);flex-shrink:0;margin-top:1px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+  .checkbox:hover{border-color:rgba(251,176,59,.5)}
+  .checkbox.checked{background:#FBB03B;border-color:#FBB03B}
+  .checkbox.checked::after{content:'✓';color:#14213D;font-size:11px;font-weight:800}
+  .task.done .task-title{text-decoration:line-through;color:#475569}
+  .task-content{flex:1}
+  .task-title{font-size:12px;font-weight:600;color:#E2E8F0}
+  .task-detail{font-size:11px;color:#64748B;margin-top:2px}
+  .task-props{font-family:'JetBrains Mono',monospace;font-size:10px;color:#94A3B8;background:rgba(251,176,59,.06);padding:1px 5px;border-radius:3px}
+  a.fix-link{font-size:10px;font-weight:600;color:#38BDF8;text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:3px;opacity:.7;transition:opacity .15s}
+  a.fix-link:hover{opacity:1}
+  a.fix-link svg{width:10px;height:10px}
+  .task-owner{flex-shrink:0;font-size:10px;font-weight:600;color:#475569;background:rgba(255,255,255,.04);padding:3px 8px;border-radius:4px;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+  /* ── Footer ── */
+  .footer{padding:16px 32px;background:rgba(251,176,59,.04);border-top:1px solid rgba(251,176,59,.1);display:flex;justify-content:space-between;align-items:center}
+  .footer-left{display:flex;align-items:center;gap:8px;font-size:12px;color:#64748B}
+  .footer-left strong{color:#FBB03B;font-weight:600}
+  a.footer-skill-link{color:#38BDF8;text-decoration:none;font-weight:600;font-size:12px;display:inline-flex;align-items:center;gap:4px;transition:color .15s}
+  a.footer-skill-link:hover{color:#7DD3FC}
+  a.footer-skill-link svg{width:14px;height:14px}
+  .footer-right{font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      STEAL THIS CLAUDE SKILL → HUBSPOT OPS
+    </div>
+    <h1>Lifecycle Stage Definitions</h1>
+    <p>12,847 contacts analyzed · 1,203 deals · Acme Corp portal</p>
+  </div>
+
+  <div class="body">
+    <!-- Funnel -->
+    <div class="funnel">
+      <div class="funnel-stage healthy" style="flex:3.2" onclick="showTab('subscriber')"><span class="f-label">Subscriber</span><span class="f-count">4,102</span></div>
+      <div class="funnel-stage healthy" style="flex:2.1" onclick="showTab('lead')"><span class="f-label">Lead</span><span class="f-count">2,694</span></div>
+      <div class="funnel-stage bottleneck" style="flex:2.8" onclick="showTab('mql')"><span class="f-label">MQL</span><span class="f-count">3,541</span></div>
+      <div class="funnel-stage leaking" style="flex:0.6" onclick="showTab('sql')"><span class="f-label">SQL</span><span class="f-count">812</span></div>
+      <div class="funnel-stage healthy" style="flex:0.5" onclick="showTab('opportunity')"><span class="f-label">Opp</span><span class="f-count">689</span></div>
+      <div class="funnel-stage small" style="flex:0.8" onclick="showTab('customer')"><span class="f-label">Customer</span><span class="f-count">1,009</span></div>
+    </div>
+
+    <!-- Conversion rates between stages -->
+    <div class="conversions">
+      <div class="conv-arrow"><div class="conv-rate good">65.7%</div><div class="conv-label">Sub → Lead</div><div class="conv-time">4.2d median</div></div>
+      <div class="conv-arrow"><div class="conv-rate good">131%</div><div class="conv-label">Lead → MQL</div><div class="conv-time">⚠ inflated</div></div>
+      <div class="conv-arrow"><div class="conv-rate bad">22.9%</div><div class="conv-label">MQL → SQL</div><div class="conv-time">31d median</div></div>
+      <div class="conv-arrow"><div class="conv-rate mid">84.8%</div><div class="conv-label">SQL → Opp</div><div class="conv-time">2.1d median</div></div>
+      <div class="conv-arrow"><div class="conv-rate mid">48.3%</div><div class="conv-label">Opp → Won</div><div class="conv-time">42d median</div></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('subscriber')">Subscriber</button>
+      <button class="tab" onclick="showTab('lead')">Lead</button>
+      <button class="tab" onclick="showTab('mql')">MQL <span class="tab-count">⚠ 4</span></button>
+      <button class="tab" onclick="showTab('sql')">SQL <span class="tab-count">⚠ 3</span></button>
+      <button class="tab" onclick="showTab('opportunity')">Opportunity</button>
+      <button class="tab" onclick="showTab('customer')">Customer</button>
+      <button class="tab" onclick="showTab('summary')">Summary</button>
+    </div>
+
+    <!-- Subscriber tab -->
+    <div class="tab-content active" id="tab-subscriber">
+      <div class="def-card">
+        <div class="def-stage-name">Subscriber</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts who opted into email communication but haven't taken a qualifying action. In your portal, 92% entered via blog subscription or newsletter signup.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Submitted blog subscribe or newsletter form</li><li>Imported contacts with no prior engagement</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Downloads a gated asset or visits pricing page → Lead</li><li>No email open in 180 days → Unsubscribed (manual cleanup)</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric green"><div class="m-val">4,102</div><div class="m-label">Contacts</div></div>
+        <div class="metric green"><div class="m-val">4.2d</div><div class="m-label">Median dwell</div></div>
+        <div class="metric green"><div class="m-val">65.7%</div><div class="m-label">→ Lead</div></div>
+        <div class="metric green"><div class="m-val">2.1%</div><div class="m-label">Skip rate</div></div>
+      </div>
+    </div>
+
+    <!-- Lead tab -->
+    <div class="tab-content" id="tab-lead">
+      <div class="def-card">
+        <div class="def-stage-name">Lead</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts who showed intent beyond email opt-in. In your portal, leads primarily come from gated content downloads and pricing page visits.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Downloaded a gated asset (ebook, guide, whitepaper)</li><li>Visited pricing page 2+ times</li><li>Submitted a content form with company info</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Lead score reaches 50+ → MQL</li><li>Requests demo or consultation directly → SQL (skip MQL)</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric blue"><div class="m-val">2,694</div><div class="m-label">Contacts</div></div>
+        <div class="metric green"><div class="m-val">11d</div><div class="m-label">Median dwell</div></div>
+        <div class="metric amber"><div class="m-val">131%</div><div class="m-label">→ MQL ⚠</div></div>
+        <div class="metric green"><div class="m-val">8.4%</div><div class="m-label">Skip rate</div></div>
+      </div>
+      <div class="mismatch-header">Issues Found</div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">131% conversion rate — more MQLs than Leads entered</div>
+          <div class="task-detail">412 contacts were set to MQL without ever being Lead. Likely a workflow setting lifecycle stage directly.</div>
+          <a class="fix-link" href="https://knowledge.hubspot.com/contacts/use-lifecycle-stages" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>HubSpot: Lifecycle stages →</a>
+        </div>
+        <div class="task-owner">revops</div>
+      </div>
+    </div>
+
+    <!-- MQL tab -->
+    <div class="tab-content" id="tab-mql">
+      <div class="def-card">
+        <div class="def-stage-name">Marketing Qualified Lead</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts scored as sales-ready by marketing activity. In your portal, MQL is the bottleneck — 3,541 contacts are parked here with a 31-day median dwell and only 22.9% converting to SQL.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Lead score reaches 50+ (behavioral + demographic)</li><li>Submitted a mid-funnel form (case study, ROI calculator)</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Sales accepts within 48 hours → SQL</li><li>No sales action in 14 days → Recycle to nurture (not happening today)</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric amber"><div class="m-val">3,541</div><div class="m-label">Contacts ⚠</div></div>
+        <div class="metric red"><div class="m-val">31d</div><div class="m-label">Median dwell</div></div>
+        <div class="metric red"><div class="m-val">22.9%</div><div class="m-label">→ SQL</div></div>
+        <div class="metric amber"><div class="m-val">4.7%</div><div class="m-label">Regression</div></div>
+      </div>
+      <div class="mismatch-header">Issues Found — 4 items</div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">1,847 MQLs with no sales activity in 30+ days</div>
+          <div class="task-detail">52% of all MQLs are being ignored. No call, email, or task logged by a sales owner.</div>
+          <a class="fix-link" href="https://knowledge.hubspot.com/workflows/create-workflows" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Build SLA workflow →</a>
+        </div>
+        <div class="task-owner">revops</div>
+      </div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">No recycle automation — MQLs pile up indefinitely</div>
+          <div class="task-detail">Build workflow: if MQL + no sales activity in 14 days → reassign or return to marketing nurture.</div>
+        </div>
+        <div class="task-owner">revops</div>
+      </div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">167 contacts regressed MQL → Lead</div>
+          <div class="task-detail">Manual overrides by 3 sales reps. HubSpot doesn't allow backward lifecycle movement by default — a workflow is overriding it.</div>
+          <a class="fix-link" href="https://knowledge.hubspot.com/contacts/use-lifecycle-stages#set-lifecycle-stages-manually" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Lifecycle stage rules →</a>
+        </div>
+        <div class="task-owner">admin</div>
+      </div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">Lead score threshold may be too low</div>
+          <div class="task-detail">22.9% MQL→SQL conversion suggests marketing is qualifying too aggressively. Test raising threshold from 50 to 65.</div>
+        </div>
+        <div class="task-owner">marketing</div>
+      </div>
+    </div>
+
+    <!-- SQL tab -->
+    <div class="tab-content" id="tab-sql">
+      <div class="def-card">
+        <div class="def-stage-name">Sales Qualified Lead</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts that sales has accepted and actively engaged. In your portal, SQL converts quickly to Opportunity (84.8% in 2.1 days) — but 37% of contacts skip this stage entirely, going straight from MQL to Opportunity.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Sales logs a call, meeting, or email to an MQL</li><li>Sales manually sets stage after qualification conversation</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Deal created → Opportunity</li><li>Disqualified after conversation → Recycled to marketing</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric blue"><div class="m-val">812</div><div class="m-label">Contacts</div></div>
+        <div class="metric green"><div class="m-val">2.1d</div><div class="m-label">Median dwell</div></div>
+        <div class="metric green"><div class="m-val">84.8%</div><div class="m-label">→ Opp</div></div>
+        <div class="metric red"><div class="m-val">37%</div><div class="m-label">Skip rate ⚠</div></div>
+      </div>
+      <div class="mismatch-header">Issues Found — 3 items</div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">37% of closed-won deals never passed through SQL</div>
+          <div class="task-detail">Contacts jump from MQL (or Lead) directly to Opportunity when a deal is created. SQL stage is being skipped by deal-creation workflow.</div>
+          <a class="fix-link" href="https://knowledge.hubspot.com/workflows/create-workflows" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Fix with deal-trigger workflow →</a>
+        </div>
+        <div class="task-owner">revops</div>
+      </div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">Evaluate: is SQL a meaningful stage or just a pass-through?</div>
+          <div class="task-detail">2.1-day median dwell + 37% skip rate. If sales qualification happens in the same conversation as deal creation, consider merging SQL into Opportunity.</div>
+        </div>
+        <div class="task-owner">leadership</div>
+      </div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">89 contacts stuck in SQL >60 days with no deal</div>
+          <div class="task-detail">Qualified but never progressed. Need a recycle workflow or manual review.</div>
+        </div>
+        <div class="task-owner">sales mgr</div>
+      </div>
+    </div>
+
+    <!-- Opportunity tab -->
+    <div class="tab-content" id="tab-opportunity">
+      <div class="def-card">
+        <div class="def-stage-name">Opportunity</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts with an active open deal. Set automatically when a deal is associated. Healthy conversion rate but 42-day median cycle.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Deal created and associated with contact (automatic)</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Deal closed-won → Customer</li><li>Deal closed-lost → stays Opportunity (needs fix)</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric blue"><div class="m-val">689</div><div class="m-label">Contacts</div></div>
+        <div class="metric amber"><div class="m-val">42d</div><div class="m-label">Median dwell</div></div>
+        <div class="metric mid"><div class="m-val">48.3%</div><div class="m-label">→ Won</div></div>
+        <div class="metric green"><div class="m-val">1.3%</div><div class="m-label">Skip rate</div></div>
+      </div>
+      <div class="mismatch-header">Issues Found — 1 item</div>
+      <div class="task">
+        <div class="checkbox" onclick="toggleTask(this)"></div>
+        <div class="task-content">
+          <div class="task-title">214 contacts still "Opportunity" with closed-lost deals</div>
+          <div class="task-detail">No workflow resets lifecycle stage on closed-lost. These contacts are invisible to marketing for re-engagement.</div>
+          <a class="fix-link" href="https://knowledge.hubspot.com/workflows/create-workflows" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Build closed-lost recycle workflow →</a>
+        </div>
+        <div class="task-owner">revops</div>
+      </div>
+    </div>
+
+    <!-- Customer tab -->
+    <div class="tab-content" id="tab-customer">
+      <div class="def-card">
+        <div class="def-stage-name">Customer</div>
+        <div class="def-row"><div class="def-label">Definition</div><div class="def-text">Contacts with at least one closed-won deal. Set automatically by HubSpot when deal moves to closed-won.</div></div>
+        <div class="def-row"><div class="def-label">Entry Criteria</div><ul class="def-criteria"><li>Deal stage moves to Closed Won (automatic)</li></ul></div>
+        <div class="def-row"><div class="def-label">Exit Criteria</div><ul class="def-criteria"><li>Churned → no stage defined today (needs Evangelist or Other)</li></ul></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric green"><div class="m-val">1,009</div><div class="m-label">Contacts</div></div>
+        <div class="metric blue"><div class="m-val">—</div><div class="m-label">Terminal stage</div></div>
+        <div class="metric blue"><div class="m-val">—</div><div class="m-label">N/A</div></div>
+        <div class="metric green"><div class="m-val">0.4%</div><div class="m-label">Skip rate</div></div>
+      </div>
+    </div>
+
+    <!-- Summary tab -->
+    <div class="tab-content" id="tab-summary">
+      <div class="def-card">
+        <div class="def-stage-name">Recommendations</div>
+        <div class="def-row"><div class="def-label">Keep</div><div class="def-text">Subscriber, Lead, MQL, Opportunity, Customer — all have clear entry/exit criteria and meaningful dwell times.</div></div>
+        <div class="def-row"><div class="def-label">Evaluate</div><div class="def-text">SQL — 37% skip rate and 2.1-day dwell suggest it may not be a meaningful stage in your sales process. Consider merging into Opportunity or enforcing it with automation.</div></div>
+        <div class="def-row"><div class="def-label">Add</div><div class="def-text">Recycled/Disqualified — you have no stage for closed-lost contacts or stale MQLs. 214 closed-lost opps and 1,847 stale MQLs are invisible to marketing.</div></div>
+        <div class="def-row"><div class="def-label">Top 3 Automation Gaps</div>
+          <ul class="def-criteria">
+            <li>MQL SLA — auto-notify manager if no sales action in 48 hours</li>
+            <li>MQL recycle — return to nurture after 14 days without engagement</li>
+            <li>Closed-lost reset — move contact back to Lead or MQL for re-engagement</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">
+      <strong>dataopsgroup.com</strong>
+      <span style="color:#475569">·</span>
+      <a class="footer-skill-link" href="https://github.com/dataopsgroup/hubspot-skills/tree/main/lifecycle-stages" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Grab the free skill
+      </a>
+    </div>
+    <div class="footer-right">Claude + HubSpot</div>
+  </div>
+</div>
+
+<script>
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function toggleTask(cb){cb.classList.toggle('checked');cb.closest('.task').classList.toggle('done')}
+</script>
+
+</body>
+</html>

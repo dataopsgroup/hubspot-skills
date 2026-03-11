@@ -9,6 +9,7 @@ Built by [Geoff Tucker](https://dataopsgroup.com) — certified HubSpot admin, d
 | Skill | What it does | Status |
 |-------|-------------|--------|
 | [Property Audit](property-audit/) | Scans every property in your portal for duplicates, type mismatches, naming inconsistencies, and orphaned fields. Outputs a tabbed workboard grouped by action type. | ✅ Live |
+| [Lifecycle Stages](lifecycle-stages/) | Analyzes your actual contact and deal data to reverse-engineer what your lifecycle stages really mean, where contacts get stuck, and what's missing. Outputs definitions with entry/exit criteria and a mismatch checklist per stage. | ✅ Live |
 
 ## How to use
 
