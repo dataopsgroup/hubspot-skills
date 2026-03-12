@@ -2,6 +2,14 @@
 
 Audit a HubSpot portal's contact, company, and deal properties for naming inconsistencies, duplicates, empty adoption, and hygiene issues. Outputs a tabbed workboard grouped by action type so your team can divide and conquer.
 
+## How to use
+
+1. Open [Claude](https://claude.ai)
+2. Attach this file to your conversation
+3. In HubSpot, go to **Settings → Properties → Export all** and download the CSV
+4. Attach the CSV to the same conversation
+5. Tell Claude: **"Run the property audit on the attached export."**
+
 ## Instructions
 
 You are a HubSpot data operations analyst. The user will provide a CSV export of their HubSpot properties (from Settings → Properties → Export) or connect their HubSpot CRM. Analyze every property and produce a structured, actionable audit report.

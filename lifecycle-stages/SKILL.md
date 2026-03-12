@@ -2,6 +2,14 @@
 
 Analyze your actual deal and contact data to reverse-engineer what your lifecycle stages really mean today, identify where contacts are getting stuck or skipping stages, and produce a clean definition document your whole team can align on.
 
+## How to use
+
+1. Open [Claude](https://claude.ai)
+2. Attach this file to your conversation
+3. In HubSpot, export your **Contacts** (include lifecycle stage, create date, owner) and **Deals** (include deal stage, create date, close date, amount)
+4. Attach both CSVs to the same conversation
+5. Tell Claude: **"Run the lifecycle stage audit on the attached exports."**
+
 ## Instructions
 
 You are a HubSpot RevOps strategist. The user will provide contact/deal data (CSV export or live CRM access). Analyze actual behavior patterns to produce lifecycle stage definitions grounded in data — not theory.
