@@ -2,26 +2,29 @@
 
 ---
 
-"What does MQL mean at your company?"
+I've been auditing HubSpot portals for years. The same problem shows up every time:
 
-If the answer takes more than one sentence — or three people give different answers — your lifecycle stages are decorative, not operational.
+Nobody can agree on what their lifecycle stages actually mean.
 
-I built a Claude skill that analyzes your actual contact and deal data to show you what your lifecycle stages really mean today.
+Marketing thinks MQL means one thing. Sales thinks it means another. The data shows it means a third thing entirely.
 
-It maps:
-→ How many contacts are at each stage (and where they're piling up)
-→ Conversion rate and median time between each stage
-→ Which stages contacts skip entirely
-→ Which stages have backwards movement (regressions)
-→ Contacts stuck in a stage with no activity
+So I built a Claude skill that settles the argument with data.
 
-Then it generates a definition card for every stage — entry criteria, exit criteria, and owner — based on what the data actually shows. Not theory. Not HubSpot's defaults. Your data.
+Here's what it does:
 
-Each stage gets its own tab with a mismatch checklist your team can divide up and work through.
+→ You export your contacts and deals from HubSpot
+→ Drop the CSVs into Claude with this skill
+→ It maps every lifecycle stage — how many contacts, conversion rates, median time in stage, skip rates, regressions
+→ Then it generates a definition card for each stage with entry criteria, exit criteria, and owner — based on what your data actually shows
+→ Each stage gets its own tab with a mismatch checklist your team can work through independently
 
-Export your contacts and deals from HubSpot. Drop the CSVs into Claude. Run the skill.
+The MQL tab is always the eye-opener. In one portal I found 52% of MQLs sitting untouched for 30+ days with zero sales activity.
 
-Grab it free: [LINK TO GITHUB]
+Grab the skill free: https://github.com/dataopsgroup/hubspot-skills/tree/main/lifecycle-stages
+
+No email gate. No DM. Just take it and run it.
+
+What other skills would you like me to share?
 
 #HubSpot #RevOps #DataOps #LifecycleStages
 
@@ -29,8 +32,9 @@ Grab it free: [LINK TO GITHUB]
 
 ## Posting Notes
 
-- **Character count**: ~920 (under 1,300 limit)
-- **Image**: Screenshot the demo.html showing the MQL tab — it has the most findings and the funnel visualization is visible at the top. The amber/red metrics tell the story immediately.
-- **Link**: github.com/dataopsgroup/hubspot-skills/tree/main/lifecycle-stages
+- **Character count**: ~1,050 (under 1,300 limit)
+- **Image**: Screenshot the demo.html showing the MQL tab active with the funnel viz and conversion rates visible. The amber/red numbers tell the story.
+- **Video option**: If you screen-record yourself running the skill on sample data (~30-45 sec), that will outperform a static image significantly.
+- **Link**: https://github.com/dataopsgroup/hubspot-skills/tree/main/lifecycle-stages
 - **Best posting time**: Tuesday or Wednesday, 7-8am
-- **First comment**: "What other skills would you like me to share?"
+- **Note**: "What other skills would you like me to share?" is in the post body this time since it's becoming your series sign-off. Keep it there going forward for consistency.
