@@ -13,7 +13,8 @@ So I built a Claude skill that audits every property in your portal in about 90 
 Here's how it works:
 
 → Export your properties from HubSpot (Settings → Properties → Export all)
-→ Drop the CSV into Claude with this skill attached
+→ Open Claude, attach the SKILL.md file and your CSV
+→ Tell it: "Run the property audit on the attached export."
 → It scans for duplicates, type mismatches, naming inconsistencies, undocumented fields, and orphaned integration properties
 → Then it outputs a tabbed workboard — one tab per action type, every item has a checkbox, a record count, and a link to the exact HubSpot doc for how to fix it
 

@@ -12,8 +12,9 @@ So I built a Claude skill that settles the argument with data.
 
 Here's what it does:
 
-→ You export your contacts and deals from HubSpot
-→ Drop the CSVs into Claude with this skill
+→ Export your contacts and deals from HubSpot
+→ Open Claude, attach the SKILL.md file and both CSVs
+→ Tell it: "Run the lifecycle stage audit on the attached exports."
 → It maps every lifecycle stage — how many contacts, conversion rates, median time in stage, skip rates, regressions
 → Then it generates a definition card for each stage with entry criteria, exit criteria, and owner — based on what your data actually shows
 → Each stage gets its own tab with a mismatch checklist your team can work through independently
