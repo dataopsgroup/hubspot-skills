@@ -1,3 +1,11 @@
+---
+name: HubSpot Property Audit
+description: Scan every property in your portal for duplicates, type mismatches, naming inconsistencies, and orphaned fields. Outputs a tabbed workboard grouped by action type.
+version: 1.0.0
+author: Geoff Tucker
+url: https://github.com/dataopsgroup/hubspot-skills/tree/main/property-audit
+---
+
 # HubSpot Property Audit
 
 Audit a HubSpot portal's contact, company, and deal properties for naming inconsistencies, duplicates, empty adoption, and hygiene issues. Outputs a tabbed workboard grouped by action type so your team can divide and conquer.

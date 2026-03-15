@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HubSpot Dedupe Pattern Analysis — Claude Skill Output</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,sans-serif;background:#0F1117;color:#E2E8F0;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:48px 24px}
+
+  .card{width:1100px;max-width:100%;background:#1A1D2E;border-radius:20px;overflow:hidden;border:1px solid rgba(251,176,59,.15);box-shadow:0 0 80px rgba(251,176,59,.06),0 20px 60px rgba(0,0,0,.4)}
+
+  /* ── Header ── */
+  .header{background:linear-gradient(135deg,#14213D,#1A2A4A);padding:36px 44px 32px;border-bottom:3px solid #FBB03B;position:relative}
+  .header::after{content:'';position:absolute;bottom:-3px;left:0;right:0;height:3px;background:linear-gradient(90deg,#FBB03B,#F59E0B,#FBB03B)}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(251,176,59,.12);border:1px solid rgba(251,176,59,.3);color:#FBB03B;font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:6px 14px;border-radius:8px;margin-bottom:16px}
+  .badge svg{width:18px;height:18px}
+  .header h1{font-size:34px;font-weight:800;color:#FFF;margin-bottom:8px}
+  .header p{font-size:18px;color:#CBD5E1}
+
+  .body{padding:36px 44px 40px}
+
+  /* ── Summary stats ── */
+  .summary-row{display:flex;gap:16px;margin-bottom:28px}
+  .stat-box{flex:1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:20px 20px;text-align:center}
+  .stat-box .number{font-size:36px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;margin-bottom:6px}
+  .stat-box .label{font-size:14px;color:#CBD5E1;text-transform:uppercase;letter-spacing:.05em;font-weight:500}
+  .stat-box.total .number{color:#FBB03B}
+  .stat-box.auto .number{color:#22C55E}
+  .stat-box.review .number{color:#F59E0B}
+  .stat-box.skip .number{color:#CBD5E1}
+  .stat-box.reduction .number{color:#38BDF8}
+
+  /* ── Cascade diagram ── */
+  .cascade{display:flex;align-items:center;gap:0;margin-bottom:32px;padding:20px 24px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:14px}
+  .cascade-step{flex:1;text-align:center}
+  .cascade-step .c-pass{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#CBD5E1;margin-bottom:6px}
+  .cascade-step .c-count{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace}
+  .cascade-step .c-label{font-size:15px;color:#94A3B8;margin-top:4px}
+  .cascade-step.p1 .c-count{color:#22C55E}
+  .cascade-step.p2 .c-count{color:#22C55E}
+  .cascade-step.p3 .c-count{color:#F59E0B}
+  .cascade-step.p4 .c-count{color:#CBD5E1}
+  .cascade-arrow{color:#94A3B8;font-size:24px;padding:0 6px;margin-top:10px}
+  .cascade-note{font-size:13px;color:#FBB03B;font-weight:600;margin-top:6px}
+
+  /* ── Tabs ── */
+  .tabs{display:flex;gap:0;border-bottom:2px solid rgba(255,255,255,.06)}
+  .tab{padding:16px 20px;text-align:center;font-size:16px;font-weight:600;color:#CBD5E1;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;background:transparent;border-top:none;border-left:none;border-right:none}
+  .tab:hover{color:#94A3B8;background:rgba(255,255,255,.02)}
+  .tab.active{border-bottom-color:#FBB03B;color:#FBB03B}
+  .tab .tab-count{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:10px;margin-left:5px}
+  .tab.active .tab-count{background:rgba(251,176,59,.15);color:#FBB03B}
+
+  .tab-content{display:none;padding:28px 0 0}
+  .tab-content.active{display:block}
+
+  /* ── Pass header ── */
+  .pass-header{display:flex;align-items:center;gap:14px;margin-bottom:24px;padding:18px 22px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:12px}
+  .pass-num{font-size:16px;font-weight:800;color:#14213D;background:#FBB03B;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .pass-info{flex:1}
+  .pass-title{font-size:20px;font-weight:700;color:#E2E8F0}
+  .pass-desc{font-size:15px;color:#CBD5E1;margin-top:4px}
+  .pass-action{font-size:14px;font-weight:700;padding:6px 14px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em}
+  .pass-action.merge{background:rgba(34,197,94,.12);color:#22C55E}
+  .pass-action.review{background:rgba(245,158,11,.12);color:#F59E0B}
+  .pass-action.cleanup{background:rgba(100,116,139,.15);color:#CBD5E1}
+
+  /* ── Pattern groups ── */
+  .pattern{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);border-radius:12px;padding:22px;margin-bottom:16px}
+  .pattern-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+  .pattern-name{font-size:19px;font-weight:700;color:#E2E8F0}
+  .pattern-stats{display:flex;gap:14px;align-items:center}
+  .pattern-count{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:800}
+  .pattern-count.green{color:#22C55E}
+  .pattern-count.amber{color:#F59E0B}
+  .pattern-count.gray{color:#CBD5E1}
+  .confidence{font-size:14px;font-weight:600;padding:4px 12px;border-radius:6px}
+  .confidence.high{background:rgba(34,197,94,.12);color:#22C55E}
+  .confidence.med{background:rgba(245,158,11,.12);color:#F59E0B}
+  .confidence.low{background:rgba(100,116,139,.15);color:#CBD5E1}
+  .pattern-desc{font-size:16px;color:#CBD5E1;margin-bottom:14px;line-height:1.5}
+
+  /* ── Example pairs ── */
+  .examples{border-top:1px solid rgba(255,255,255,.04);padding-top:14px}
+  .example-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#94A3B8;margin-bottom:10px}
+  .pair{display:flex;gap:12px;align-items:center;padding:8px 0;font-size:15px}
+  .pair-side{flex:1;background:rgba(255,255,255,.02);padding:12px 16px;border-radius:8px}
+  .pair-name{font-weight:600;color:#E2E8F0;font-size:17px}
+  .pair-email{font-family:'JetBrains Mono',monospace;font-size:15px;color:#CBD5E1}
+  .pair-company{font-size:15px;color:#CBD5E1}
+  .pair-vs{color:#94A3B8;font-weight:800;font-size:16px;flex-shrink:0}
+  .pair-match{font-size:15px;color:#FBB03B;font-weight:600;margin-top:6px}
+
+  /* ── Tasks ── */
+  .task{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;margin-top:12px;border-radius:8px;transition:background .12s}
+  .task:hover{background:rgba(255,255,255,.02)}
+  .checkbox{width:22px;height:22px;border-radius:5px;border:2px solid rgba(255,255,255,.15);flex-shrink:0;margin-top:2px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+  .checkbox:hover{border-color:rgba(251,176,59,.5)}
+  .checkbox.checked{background:#FBB03B;border-color:#FBB03B}
+  .checkbox.checked::after{content:'✓';color:#14213D;font-size:15px;font-weight:800}
+  .task.done .task-title{text-decoration:line-through;color:#CBD5E1}
+  .task-content{flex:1}
+  .task-title{font-size:17px;font-weight:600;color:#E2E8F0}
+  .task-detail{font-size:15px;color:#CBD5E1;margin-top:4px}
+  .task-owner{flex-shrink:0;font-size:14px;font-weight:600;color:#94A3B8;background:rgba(255,255,255,.04);padding:5px 12px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em}
+
+  a.fix-link{font-size:15px;font-weight:600;color:#38BDF8;text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-top:6px;opacity:.7;transition:opacity .15s}
+  a.fix-link:hover{opacity:1}
+  a.fix-link svg{width:14px;height:14px}
+
+  .rescan-reminder{background:rgba(251,176,59,.06);border:1px solid rgba(251,176,59,.15);border-radius:10px;padding:18px 22px;margin-top:22px;font-size:17px;color:#FBB03B;font-weight:600;text-align:center}
+
+  /* ── Footer ── */
+  .footer{padding:22px 44px;background:rgba(251,176,59,.04);border-top:1px solid rgba(251,176,59,.1);display:flex;justify-content:space-between;align-items:center}
+  .footer-left{display:flex;align-items:center;gap:10px;font-size:17px;color:#CBD5E1}
+  .footer-left strong{color:#FBB03B;font-weight:600}
+  a.footer-skill-link{color:#38BDF8;text-decoration:none;font-weight:600;font-size:17px;display:inline-flex;align-items:center;gap:6px;transition:color .15s}
+  a.footer-skill-link:hover{color:#7DD3FC}
+  a.footer-skill-link svg{width:18px;height:18px}
+  .footer-right{font-size:15px;color:#94A3B8;font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <div class="badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      STEAL THIS CLAUDE SKILL → HUBSPOT OPS
+    </div>
+    <h1>Dedupe Pattern Analysis</h1>
+    <p>14,302 contacts scanned · 4,847 potential duplicate pairs found</p>
+  </div>
+
+  <div class="body">
+    <div class="summary-row">
+      <div class="stat-box total"><div class="number">4,847</div><div class="label">Dupe Pairs</div></div>
+      <div class="stat-box auto"><div class="number">1,680</div><div class="label">Auto-Merge</div></div>
+      <div class="stat-box review"><div class="number">2,787</div><div class="label">Review</div></div>
+      <div class="stat-box skip"><div class="number">380</div><div class="label">Skip/Clean</div></div>
+      <div class="stat-box reduction"><div class="number">~23%</div><div class="label">DB Reduction</div></div>
+    </div>
+
+    <!-- Cascade diagram -->
+    <div class="cascade">
+      <div class="cascade-step p1">
+        <div class="c-pass">Pass 1</div>
+        <div class="c-count">1,247</div>
+        <div class="c-label">exact matches</div>
+        <div class="cascade-note">merge → re-scan</div>
+      </div>
+      <div class="cascade-arrow">→</div>
+      <div class="cascade-step p2">
+        <div class="c-pass">Pass 2</div>
+        <div class="c-count">433</div>
+        <div class="c-label">company-confirmed</div>
+        <div class="cascade-note">merge → re-scan</div>
+      </div>
+      <div class="cascade-arrow">→</div>
+      <div class="cascade-step p3">
+        <div class="c-pass">Pass 3</div>
+        <div class="c-count">2,787</div>
+        <div class="c-label">review queue</div>
+        <div class="cascade-note">many resolve after P1+P2</div>
+      </div>
+      <div class="cascade-arrow">→</div>
+      <div class="cascade-step p4">
+        <div class="c-pass">Pass 4</div>
+        <div class="c-count">380</div>
+        <div class="c-label">cleanup</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('pass1')">Pass 1: Auto-Merge<span class="tab-count">1,247</span></button>
+      <button class="tab" onclick="showTab('pass2')">Pass 2: Confirmed<span class="tab-count">433</span></button>
+      <button class="tab" onclick="showTab('pass3')">Pass 3: Review<span class="tab-count">2,787</span></button>
+      <button class="tab" onclick="showTab('pass4')">Pass 4: Cleanup<span class="tab-count">380</span></button>
+      <button class="tab" onclick="showTab('koalify')">Koalify Rules</button>
+    </div>
+
+    <!-- Pass 1 -->
+    <div class="tab-content active" id="tab-pass1">
+      <div class="pass-header">
+        <div class="pass-num">1</div>
+        <div class="pass-info"><div class="pass-title">High Confidence — Auto-Merge Candidates</div><div class="pass-desc">Near-zero false positive risk. Run these first — they clean the dataset for subsequent passes.</div></div>
+        <div class="pass-action merge">Auto-merge</div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Exact name + same company</div>
+          <div class="pattern-stats"><span class="pattern-count green">847</span><span class="confidence high">95%</span></div>
+        </div>
+        <div class="pattern-desc">First name, last name, and company all match exactly after normalization.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">Sarah Chen</span><br><span class="pair-email">schen@acmecorp.com</span><br><span class="pair-company">Acme Corp</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">Sarah Chen</span><br><span class="pair-email">sarah.chen@acmecorp.com</span><br><span class="pair-company">Acme Corp</span></div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content">
+            <div class="task-title">Merge 847 pairs — keep record with most recent activity</div>
+            <a class="fix-link" href="https://knowledge.hubspot.com/contacts/merge-contacts" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>HubSpot: Merge contacts →</a>
+          </div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Name + credential suffix variation</div>
+          <div class="pattern-stats"><span class="pattern-count green">183</span><span class="confidence high">95%</span></div>
+        </div>
+        <div class="pattern-desc">Names match after stripping MBA, PHR, SHRM-CP, CPA, etc. Same company.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">John Martinez, MBA</span><br><span class="pair-email">jmartinez@globex.com</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">John Martinez</span><br><span class="pair-email">john.martinez@globex.com</span></div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Merge 183 pairs — preserve credential in merged name</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Email domain typo</div>
+          <div class="pattern-stats"><span class="pattern-count green">127</span><span class="confidence high">90%</span></div>
+        </div>
+        <div class="pattern-desc">Same name, email domains differ by 1-2 characters.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">Lisa Park</span><br><span class="pair-email">lpark@<b style="color:#EF4444">gmial</b>.com</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">Lisa Park</span><br><span class="pair-email">lpark@<b style="color:#22C55E">gmail</b>.com</span></div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Merge 127 pairs — keep correctly-spelled email</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+
+      <div class="rescan-reminder">⟳ After completing Pass 1, re-export contacts and re-run. Pass 2 results will change.</div>
+    </div>
+
+    <!-- Pass 2 -->
+    <div class="tab-content" id="tab-pass2">
+      <div class="pass-header">
+        <div class="pass-num">2</div>
+        <div class="pass-info"><div class="pass-title">Company-Confirmed Matches</div><div class="pass-desc">Different emails but company match confirms identity. Run after Pass 1.</div></div>
+        <div class="pass-action merge">Auto-merge</div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Personal + work email, company confirms</div>
+          <div class="pattern-stats"><span class="pattern-count green">214</span><span class="confidence high">85%</span></div>
+        </div>
+        <div class="pattern-desc">Same name, one personal email, one work email. Company match confirms identity.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">David Kim</span><br><span class="pair-email">dkim@initech.com</span><br><span class="pair-company">Initech</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">David Kim</span><br><span class="pair-email">davidkim42@gmail.com</span><br><span class="pair-company">Initech</span></div>
+          </div>
+          <div class="pair-match">Match signal: name + company + one work email</div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Merge 214 pairs — keep work email as primary</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Rebrand / acquisition domains</div>
+          <div class="pattern-stats"><span class="pattern-count green">68</span><span class="confidence high">80%</span></div>
+        </div>
+        <div class="pattern-desc">Same name, completely different domains, but company names match — rebrand detected.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">Amy Liu</span><br><span class="pair-email">aliu@oldcorp.com</span><br><span class="pair-company">NewBrand (fka OldCorp)</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">Amy Liu</span><br><span class="pair-email">amy.liu@newbrand.io</span><br><span class="pair-company">NewBrand</span></div>
+          </div>
+          <div class="pair-match">Match signal: name + company (rebrand detected)</div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Merge 68 pairs — keep current-brand email</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+
+      <div class="rescan-reminder">⟳ After completing Pass 2, re-export and re-run. Many Pass 3 pairs will resolve.</div>
+    </div>
+
+    <!-- Pass 3 -->
+    <div class="tab-content" id="tab-pass3">
+      <div class="pass-header">
+        <div class="pass-num">3</div>
+        <div class="pass-info"><div class="pass-title">Review Queue — Human Judgment Required</div><div class="pass-desc">Medium confidence. Many self-resolve after Pass 1 + 2.</div></div>
+        <div class="pass-action review">Review</div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Same name, different company — job change?</div>
+          <div class="pattern-stats"><span class="pattern-count amber">2,018</span><span class="confidence med">30-70%</span></div>
+        </div>
+        <div class="pattern-desc">Could be a job change or coincidence. Signal scoring: sequential dates (+20%), phone match (+30%), one inactive (+15%).</div>
+        <div class="examples">
+          <div class="example-label">Example pair (strong signal)</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">Marcus Johnson</span><br><span class="pair-email">mjohnson@firstjob.com</span><br><span class="pair-company">FirstJob Inc</span><br><span style="font-size:14px;color:#4ADE80">Created: 2023-04 · Inactive since 2024-01</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">Marcus Johnson</span><br><span class="pair-email">marcus@newgig.io</span><br><span class="pair-company">NewGig</span><br><span style="font-size:14px;color:#4ADE80">Created: 2024-03 · Active now</span></div>
+          </div>
+          <div class="pair-match">Signals: sequential dates ✓ · old record inactive ✓ · confidence: 65%</div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Review 2,018 pairs — sort by signal score, work top-down</div></div>
+          <div class="task-owner">sales mgr</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Nickname / name variants + same company</div>
+          <div class="pattern-stats"><span class="pattern-count amber">341</span><span class="confidence med">70%</span></div>
+        </div>
+        <div class="pattern-desc">Known name variations (Matt/Matthew, Kate/Katelyn, Geoff/Jeff) with company match.</div>
+        <div class="examples">
+          <div class="example-label">Example pair</div>
+          <div class="pair">
+            <div class="pair-side"><span class="pair-name">Matt Reynolds</span><br><span class="pair-email">matt@acmecorp.com</span></div>
+            <span class="pair-vs">↔</span>
+            <div class="pair-side"><span class="pair-name">Matthew Reynolds</span><br><span class="pair-email">mreynolds@acmecorp.com</span></div>
+          </div>
+        </div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Spot-check 10%, if clean then batch merge the rest</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pass 4 -->
+    <div class="tab-content" id="tab-pass4">
+      <div class="pass-header">
+        <div class="pass-num">4</div>
+        <div class="pass-info"><div class="pass-title">Cleanup & Associations</div><div class="pass-desc">Not merges — records to associate, archive, or delete.</div></div>
+        <div class="pass-action cleanup">Cleanup</div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Person vs role/generic email</div>
+          <div class="pattern-stats"><span class="pattern-count gray">299</span><span class="confidence low">N/A</span></div>
+        </div>
+        <div class="pattern-desc">Real person alongside hr@, info@, admin@ at same company. Don't merge — associate instead.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Associate 299 role emails to company — flag for archival</div></div>
+          <div class="task-owner">admin</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top">
+          <div class="pattern-name">Junk & generic records</div>
+          <div class="pattern-stats"><span class="pattern-count gray">16</span><span class="confidence low">N/A</span></div>
+        </div>
+        <div class="pattern-desc">test@test.com, "asdf", blank contacts, spam patterns.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Delete 16 junk records after confirming no deal associations</div></div>
+          <div class="task-owner">admin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Koalify tab -->
+    <div class="tab-content" id="tab-koalify">
+      <div class="pass-header">
+        <div class="pass-num">K</div>
+        <div class="pass-info"><div class="pass-title">Koalify Rules for Ongoing Prevention</div><div class="pass-desc">Set these up after cleanup to prevent new duplicates.</div></div>
+        <div class="pass-action merge">Prevent</div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top"><div class="pattern-name">Rule 1: Exact email match</div></div>
+        <div class="pattern-desc">Match field: Email → Exact. Action: Auto-merge or block creation. Catches majority of incoming dupes.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Enable with auto-merge action</div></div>
+          <div class="task-owner">admin</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top"><div class="pattern-name">Rule 2: Gmail normalization</div></div>
+        <div class="pattern-desc">Strip dots and plus-aliases from @gmail.com before matching.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Enable Gmail normalization in matching settings</div></div>
+          <div class="task-owner">admin</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top"><div class="pattern-name">Rule 3: First + Last + Company fuzzy</div></div>
+        <div class="pattern-desc">Fuzzy first name (Levenshtein ≤ 1) + exact last + fuzzy company. Flag for review, not auto-merge.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content">
+            <div class="task-title">Enable with review-queue action</div>
+            <div class="task-detail">~10% false positive risk on common names</div>
+          </div>
+          <div class="task-owner">admin</div>
+        </div>
+      </div>
+
+      <div class="pattern">
+        <div class="pattern-top"><div class="pattern-name">Rule 4: Domain alias map</div></div>
+        <div class="pattern-desc">Map old domain → new domain for known rebrands/acquisitions. Custom to your portal.</div>
+        <div class="task">
+          <div class="checkbox" onclick="toggleTask(this)"></div>
+          <div class="task-content"><div class="task-title">Build alias list from Pass 2 findings, add to Koalify</div></div>
+          <div class="task-owner">ops lead</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">
+      <strong>dataopsgroup.com</strong>
+      <span style="color:#94A3B8">·</span>
+      <a class="footer-skill-link" href="https://github.com/dataopsgroup/hubspot-skills/tree/main/dedupe-patterns" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Grab the free skill
+      </a>
+    </div>
+    <div class="footer-right">Claude + HubSpot + Koalify</div>
+  </div>
+</div>
+
+<script>
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+function toggleTask(cb){cb.classList.toggle('checked');cb.closest('.task').classList.toggle('done')}
+</script>
+
+</body>
+</html>

@@ -1,3 +1,11 @@
+---
+name: HubSpot Lifecycle Stage Audit & Definitions
+description: Analyze your actual contact and deal data to reverse-engineer what your lifecycle stages really mean, where contacts get stuck, and what's missing. Outputs definitions with entry/exit criteria per stage.
+version: 1.0.0
+author: Geoff Tucker
+url: https://github.com/dataopsgroup/hubspot-skills/tree/main/lifecycle-stages
+---
+
 # HubSpot Lifecycle Stage Audit & Definitions
 
 Analyze your actual deal and contact data to reverse-engineer what your lifecycle stages really mean today, identify where contacts are getting stuck or skipping stages, and produce a clean definition document your whole team can align on.

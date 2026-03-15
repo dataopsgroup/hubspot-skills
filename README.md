@@ -10,6 +10,7 @@ Built by [Geoff Tucker](https://dataopsgroup.com) — certified HubSpot admin, d
 |-------|-------------|--------|
 | [Property Audit](property-audit/) | Scans every property in your portal for duplicates, type mismatches, naming inconsistencies, and orphaned fields. Outputs a tabbed workboard grouped by action type. | ✅ Live |
 | [Lifecycle Stages](lifecycle-stages/) | Analyzes your actual contact and deal data to reverse-engineer what your lifecycle stages really mean, where contacts get stuck, and what's missing. Outputs definitions with entry/exit criteria and a mismatch checklist per stage. | ✅ Live |
+| [Dedupe Patterns](dedupe-patterns/) | Scans your contact export to discover which duplicate patterns exist in your portal, classifies each by confidence, and generates a layered 4-pass resolution plan. Includes Koalify rule recommendations for ongoing prevention. | ✅ Live |
 
 ## How to use
 
